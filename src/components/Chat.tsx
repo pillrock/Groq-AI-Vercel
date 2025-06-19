@@ -25,7 +25,14 @@ const Chat: React.FC = () => {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
-
+  const getOrCreateTokenId = () => {
+    let tokenId = localStorage.getItem("TokenId");
+    if (!tokenId) {
+      tokenId = crypto.randomUUID(); // Tạo UUID mới
+      localStorage.setItem("TokenId", tokenId);
+    }
+    return tokenId;
+  };
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim() || isLoading) return;
@@ -44,7 +51,7 @@ const Chat: React.FC = () => {
     try {
       const AIResponse = await axios.post("/api/groq-test", {
         message: input.trim(),
-        userToken: `${window.localStorage.getItem("token") || ""}`,
+        userTokenId: `${getOrCreateTokenId() || ""}`,
       });
 
       console.log(AIResponse.data);
@@ -89,7 +96,7 @@ const Chat: React.FC = () => {
     /// call API
 
     const resData = await axios.post("/api/delChat", {
-      userToken: `${window.localStorage.getItem("token") || "no-token"}`,
+      userTokenId: `${getOrCreateTokenId()} || "no-TokenId"}`,
     });
     console.log("New message response:", resData.data);
   };

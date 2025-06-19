@@ -7,7 +7,7 @@ const cache = new NodeCache({ stdTTL: 0, checkperiod: 0 });
 
 // Data types
 interface Message {
-  userToken: string;
+  userTokenId: string;
   role: "system" | "user" | "assistant";
   content: string;
   timestamp: number;
@@ -53,9 +53,9 @@ function cleanupOldMessages(messages: Message[], maxLength: number): Message[] {
 
 export async function POST(req: NextRequest) {
   const body = await req.json();
-  const { message, userToken } = body;
+  const { message, userTokenId } = body;
 
-  if (!userToken) {
+  if (!userTokenId) {
     return NextResponse.json(
       { error: "Không tìm thấy TOKEN, bro ơi đừng..." },
       { status: 400 }
@@ -81,7 +81,7 @@ export async function POST(req: NextRequest) {
 
     // Get conversation history for the user
     const userHistory = db.chats.history
-      .filter((msg) => msg.userToken === userToken)
+      .filter((msg) => msg.userTokenId === userTokenId)
       .sort((a, b) => a.timestamp - b.timestamp)
       .slice(-10); // Only use last 10 messages for context
 
@@ -105,14 +105,14 @@ export async function POST(req: NextRequest) {
     // Create new messages
     const newMessages: Message[] = [
       {
-        userToken,
+        userTokenId,
         role: "user",
         content: message,
         timestamp: Date.now(),
         id: crypto.randomUUID(),
       },
       {
-        userToken,
+        userTokenId,
         role: "assistant",
         content: reply,
         timestamp: Date.now(),
