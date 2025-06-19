@@ -96,13 +96,13 @@ const Chat: React.FC = () => {
     /// call API
 
     const resData = await axios.post("/api/delChat", {
-      userTokenId: `${getOrCreateTokenId()} || "no-TokenId"}`,
+      userTokenId: `${getOrCreateTokenId() || "no-TokenId"}`,
     });
     console.log("New message response:", resData.data);
   };
 
   return (
-    <div className="flex flex-col w-full max-h-screen h-screen mx-auto bg-black/20">
+    <div className="flex flex-col w-full max-h-screen h-[100dvh] mx-auto bg-black/20">
       {/* Messages container */}
       {messages.length === 0 && (
         <p className=" fixed top-[50%] left-[50%] translate-x-[-50%] translate-y-[-50%] text-gray-700 text-xl">

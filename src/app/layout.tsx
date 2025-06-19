@@ -7,8 +7,8 @@ const geist = Geist({
 });
 
 export const metadata: Metadata = {
-  title: "Cyberpunk Chat",
-  description: "A minimalist cyberpunk chat interface",
+  title: "Bot Chat",
+  description: "anh em mình cứ thế thôi hẹ hẹ hẹ",
 };
 
 export default function RootLayout({
