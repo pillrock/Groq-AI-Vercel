@@ -4,7 +4,7 @@ import { NextRequest } from "next/server";
 // Bộ nhớ tạm để lưu hội thoại
 const conversationMemory = new Map<
   string,
-  Array<{ role: string; content: string }>
+  Array<{ role: "system" | "user" | "assistant"; content: string }>
 >();
 
 export async function POST(req: NextRequest) {
@@ -46,10 +46,10 @@ export async function POST(req: NextRequest) {
     conversationMemory.set(userToken, previousMessages);
 
     return Response.json({ message: reply });
-  } catch (error: any) {
-    return Response.json(
-      { error: error.message || "Unknown error from Groq" },
-      { status: 500 }
-    );
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      return Response.json({ error: error.message }, { status: 500 });
+    }
+    return Response.json({ error: "Unknown error" }, { status: 500 });
   }
 }
