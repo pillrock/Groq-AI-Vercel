@@ -6,7 +6,7 @@ const cache = new NodeCache({ stdTTL: 0, checkperiod: 0 });
 
 // Data types
 interface Message {
-  userToken: string;
+  userTokenId: string;
   role: "system" | "user" | "assistant";
   content: string;
   timestamp: number;
@@ -42,27 +42,27 @@ if (!cache.get("db")) {
 }
 
 // Helper function to cleanup old messages
-function cleanChatFromUserToken(
-  userToken: string,
+function cleanChatFromUserTokenId(
+  userTokenId: string,
   messages: Message[]
 ): Message[] {
-  if (userToken === "no-token") {
+  if (userTokenId === "no-token") {
     return [...messages]; // Do not clean if no token is provided
   }
 
   const sortedMessages = [...messages].filter(
-    (message) => message.userToken !== userToken
+    (message) => message.userTokenId !== userTokenId
   );
   return sortedMessages;
 }
 
 export async function POST(req: NextRequest) {
   const body = await req.json();
-  const { userToken } = body;
+  const { userTokenId } = body;
 
-  if (!userToken) {
+  if (!userTokenId) {
     return NextResponse.json(
-      { error: "Missing or invalid 'userToken'" },
+      { error: "Missing or invalid 'userTokenId'" },
       { status: 400 }
     );
   }
@@ -71,7 +71,7 @@ export async function POST(req: NextRequest) {
   const db: Schema = cache.get("db") || defaultDB;
 
   // Clean chat history for the user
-  db.chats.history = cleanChatFromUserToken(userToken, db.chats.history);
+  db.chats.history = cleanChatFromUserTokenId(userTokenId, db.chats.history);
 
   // Save to cache
   cache.set("db", db);
