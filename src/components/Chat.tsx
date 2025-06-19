@@ -42,12 +42,13 @@ const Chat: React.FC = () => {
     setIsLoading(true);
 
     try {
-      // Simulate API call
       const AIResponse = await axios.post("/api/groq-test", {
         message: input.trim(),
         userToken: `${window.localStorage.getItem("token") || ""}`,
       });
+
       console.log(AIResponse.data);
+
       setMessages((prev) => [
         ...prev,
         {
@@ -57,19 +58,26 @@ const Chat: React.FC = () => {
           timestamp: new Date().toLocaleTimeString(),
         },
       ]);
-      setIsLoading(false);
     } catch (error: unknown) {
-      setIsLoading(false);
       console.log("Error:", error);
+
+      let errorMessage = "No response from AI.";
+
+      if (axios.isAxiosError(error) && error.response?.data?.error) {
+        errorMessage = error.response.data.error;
+      }
+
       setMessages((prev) => [
         ...prev,
         {
           id: (Date.now() + 1).toString(),
-          content: error.response.data.error || "No response from AI.",
+          content: errorMessage,
           isUser: false,
           timestamp: new Date().toLocaleTimeString(),
         },
       ]);
+    } finally {
+      setIsLoading(false);
     }
   };
 

@@ -28,6 +28,20 @@
         "content": "Cả! 👋 \n\nAnything I can do for you? 😁  \n",
         "timestamp": 1750322761676,
         "id": "43a4768d-992d-41f7-b1f0-e47f07288f53"
+      },
+      {
+        "userToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY3Y2M0YWZkYjIxODM2NTFiZmIzMzg4NiIsImlhdCI6MTc1MDA1ODA5OSwiZXhwIjoxNzUwNjYyODk5fQ.EeScJ10jYaof4XK734FP1FgrY5KLSqYvCQ73b2QTSsM",
+        "role": "user",
+        "content": "chào",
+        "timestamp": 1750324319945,
+        "id": "847f80c3-1fdd-46b3-98e0-b6ac1bd1420f"
+      },
+      {
+        "userToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY3Y2M0YWZkYjIxODM2NTFiZmIzMzg4NiIsImlhdCI6MTc1MDA1ODA5OSwiZXhwIjoxNzUwNjYyODk5fQ.EeScJ10jYaof4XK734FP1FgrY5KLSqYvCQ73b2QTSsM",
+        "role": "assistant",
+        "content": "Chào bạn! 😊 \n\nWhat's on your mind today? 😄",
+        "timestamp": 1750324319945,
+        "id": "9e8aabb7-9c58-4bd2-a822-52c7b5794ac6"
       }
     ]
   },
