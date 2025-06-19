@@ -1,18 +1,8 @@
-import { NextRequest } from "next/server";
-import { Low } from "lowdb";
-import { JSONFile } from "lowdb/node";
-import { join, dirname } from "path";
-import { fileURLToPath } from "url";
-import { mkdirSync, existsSync } from "fs";
+import { NextRequest, NextResponse } from "next/server";
+import NodeCache from "node-cache";
 
-// Initialize database path
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const file = join(__dirname, "..", "data", "db.json");
-
-// Ensure data directory exists
-if (!existsSync(dirname(file))) {
-  mkdirSync(dirname(file), { recursive: true });
-}
+// Initialize node-cache
+const cache = new NodeCache({ stdTTL: 0, checkperiod: 0 });
 
 // Data types
 interface Message {
@@ -46,17 +36,21 @@ const defaultDB: Schema = {
   },
 };
 
-// Initialize adapter and database
-const adapter = new JSONFile<Schema>(file);
-const db = new Low<Schema>(adapter, defaultDB);
+// Initialize cache if not already set
+if (!cache.get("db")) {
+  cache.set("db", defaultDB);
+}
 
 // Helper function to cleanup old messages
-function cleanChatFromUserToken(userToken: string): Message[] {
+function cleanChatFromUserToken(
+  userToken: string,
+  messages: Message[]
+): Message[] {
   if (userToken === "no-token") {
-    return [...db.data.chats.history]; // Do not clean if no token is provided
+    return [...messages]; // Do not clean if no token is provided
   }
 
-  const sortedMessages = [...db.data.chats.history].filter(
+  const sortedMessages = [...messages].filter(
     (message) => message.userToken !== userToken
   );
   return sortedMessages;
@@ -67,28 +61,23 @@ export async function POST(req: NextRequest) {
   const { userToken } = body;
 
   if (!userToken) {
-    return Response.json(
+    return NextResponse.json(
       { error: "Missing or invalid 'userToken'" },
       { status: 400 }
     );
   }
 
-  // Ensure data is loaded
-  await db.read();
+  // Get data from cache
+  const db: Schema = cache.get("db") || defaultDB;
 
-  // Initialize db structure if empty
-  if (!db.data) {
-    db.data = defaultDB;
-  }
-  console.log("Database loaded:", db.data);
-  //return
-  db.data.chats.history = cleanChatFromUserToken(userToken);
+  // Clean chat history for the user
+  db.chats.history = cleanChatFromUserToken(userToken, db.chats.history);
 
-  // Save to database
-  await db.write();
+  // Save to cache
+  cache.set("db", db);
 
-  return Response.json({
-    message: "Database loaded successfully",
-    history: db.data,
+  return NextResponse.json({
+    message: "Chat history cleared successfully",
+    history: db.chats.history,
   });
 }

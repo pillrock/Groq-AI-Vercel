@@ -1,19 +1,9 @@
 import { Groq } from "groq-sdk";
-import { NextRequest } from "next/server";
-import { Low } from "lowdb";
-import { JSONFile } from "lowdb/node";
-import { join, dirname } from "path";
-import { fileURLToPath } from "url";
-import { mkdirSync, existsSync } from "fs";
+import { NextRequest, NextResponse } from "next/server";
+import NodeCache from "node-cache";
 
-// Initialize database path
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const file = join(__dirname, "..", "data", "db.json");
-
-// Ensure data directory exists
-if (!existsSync(dirname(file))) {
-  mkdirSync(dirname(file), { recursive: true });
-}
+// Initialize node-cache
+const cache = new NodeCache({ stdTTL: 0, checkperiod: 0 });
 
 // Data types
 interface Message {
@@ -47,9 +37,10 @@ const defaultDB: Schema = {
   },
 };
 
-// Initialize adapter and database
-const adapter = new JSONFile<Schema>(file);
-const db = new Low<Schema>(adapter, defaultDB);
+// Initialize cache if not already set
+if (!cache.get("db")) {
+  cache.set("db", defaultDB);
+}
 
 // Helper function to cleanup old messages
 function cleanupOldMessages(messages: Message[], maxLength: number): Message[] {
@@ -65,25 +56,20 @@ export async function POST(req: NextRequest) {
   const { message, userToken } = body;
 
   if (!userToken) {
-    return Response.json(
+    return NextResponse.json(
       { error: "Không tìm thấy TOKEN, bro ơi đừng..." },
       { status: 400 }
     );
   }
   if (!message?.trim()) {
-    return Response.json(
+    return NextResponse.json(
       { error: "Missing or invalid 'message'" },
       { status: 400 }
     );
   }
 
-  // Ensure data is loaded
-  await db.read();
-
-  // Initialize db structure if empty
-  if (!db.data) {
-    db.data = defaultDB;
-  }
+  // Get data from cache
+  const db: Schema = cache.get("db") || defaultDB;
 
   try {
     // System message defines AI behavior
@@ -94,7 +80,7 @@ export async function POST(req: NextRequest) {
     };
 
     // Get conversation history for the user
-    const userHistory = db.data.chats.history
+    const userHistory = db.chats.history
       .filter((msg) => msg.userToken === userToken)
       .sort((a, b) => a.timestamp - b.timestamp)
       .slice(-10); // Only use last 10 messages for context
@@ -108,9 +94,9 @@ export async function POST(req: NextRequest) {
     // Call Groq API
     const groq = new Groq({ apiKey: process.env.GROQ_API_KEY as string });
     const completion = await groq.chat.completions.create({
-      model: db.data.settings.defaultModel,
+      model: db.settings.defaultModel,
       messages: conversationMessages,
-      temperature: db.data.settings.temperature,
+      temperature: db.settings.temperature,
     });
 
     const reply =
@@ -135,15 +121,15 @@ export async function POST(req: NextRequest) {
     ];
 
     // Add new messages and cleanup if needed
-    db.data.chats.history = cleanupOldMessages(
-      [...db.data.chats.history, ...newMessages],
-      db.data.settings.maxHistoryLength
+    db.chats.history = cleanupOldMessages(
+      [...db.chats.history, ...newMessages],
+      db.settings.maxHistoryLength
     );
 
-    // Save to database
-    await db.write();
+    // Save to cache
+    cache.set("db", db);
 
-    return Response.json({
+    return NextResponse.json({
       status: 200,
       message: reply,
       messageId: newMessages[1].id, // Return assistant's message ID
@@ -158,13 +144,13 @@ export async function POST(req: NextRequest) {
       error.message.includes("context_length_exceeded")
     ) {
       // Reduce history and try again with shorter context
-      db.data.chats.history = cleanupOldMessages(
-        db.data.chats.history,
-        Math.floor(db.data.settings.maxHistoryLength / 2)
+      db.chats.history = cleanupOldMessages(
+        db.chats.history,
+        Math.floor(db.settings.maxHistoryLength / 2)
       );
-      await db.write();
+      cache.set("db", db);
 
-      return Response.json(
+      return NextResponse.json(
         {
           error: "Đoạn chat dài quá rồi bro.",
           shouldRetry: true,
@@ -173,7 +159,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    return Response.json(
+    return NextResponse.json(
       {
         error: error instanceof Error ? error.message : "Unknown error",
         shouldRetry: false,
