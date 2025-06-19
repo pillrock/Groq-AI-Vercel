@@ -82,16 +82,16 @@ const Chat: React.FC = () => {
   };
 
   const handleNewMessage = async () => {
+    /// reset
+    setMessages([]);
+    setInput("");
+    setIsLoading(false);
     /// call API
 
     const resData = await axios.post("/api/delChat", {
       userToken: `${window.localStorage.getItem("token") || "no-token"}`,
     });
     console.log("New message response:", resData.data);
-    /// reset
-    setMessages([]);
-    setInput("");
-    setIsLoading(false);
   };
 
   return (
@@ -104,7 +104,7 @@ const Chat: React.FC = () => {
       )}
       <span
         onClick={handleNewMessage}
-        className="fixed hover:opacity-75 top-0 left-0 p-2 rounded-full m-2 cursor-pointer bg-gradient-to-r from-[#FC466B] to-[#3F5EFB] text-white shadow-lg transition-all duration-300 "
+        className="fixed z-10 hover:opacity-75 top-0 left-0 p-2 rounded-full m-2 cursor-pointer bg-gradient-to-r from-[#FC466B] to-[#3F5EFB] text-white shadow-lg transition-all duration-300 "
       >
         <MessageSquarePlus />
       </span>
