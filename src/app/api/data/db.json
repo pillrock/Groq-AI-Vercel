@@ -1,0 +1,39 @@
+{
+  "chats": {
+    "history": [
+      {
+        "userToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY3Y2M0YWZkYjIxODM2NTFiZmIzMzg4NiIsImlhdCI6MTc1MDA1ODA5OSwiZXhwIjoxNzUwNjYyODk5fQ.EeScJ10jYaof4XK734FP1FgrY5KLSqYvCQ73b2QTSsM",
+        "role": "user",
+        "content": "xin cào",
+        "timestamp": 1750322540199,
+        "id": "bd29d11a-6305-4776-b3b9-fa0149ece77d"
+      },
+      {
+        "userToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY3Y2M0YWZkYjIxODM2NTFiZmIzMzg4NiIsImlhdCI6MTc1MDA1ODA5OSwiZXhwIjoxNzUwNjYyODk5fQ.EeScJ10jYaof4XK734FP1FgrY5KLSqYvCQ73b2QTSsM",
+        "role": "assistant",
+        "content": "Xin chào! 👋\n\nIt's nice to meet you. \n\nHow can I help you today? 😊 \n",
+        "timestamp": 1750322540199,
+        "id": "7efea8ae-0161-4a8f-beb1-23738dbb8a1e"
+      },
+      {
+        "userToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY3Y2M0YWZkYjIxODM2NTFiZmIzMzg4NiIsImlhdCI6MTc1MDA1ODA5OSwiZXhwIjoxNzUwNjYyODk5fQ.EeScJ10jYaof4XK734FP1FgrY5KLSqYvCQ73b2QTSsM",
+        "role": "user",
+        "content": "caa",
+        "timestamp": 1750322761676,
+        "id": "18d16e76-ef2f-43f0-bd9d-978b935bd0f1"
+      },
+      {
+        "userToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY3Y2M0YWZkYjIxODM2NTFiZmIzMzg4NiIsImlhdCI6MTc1MDA1ODA5OSwiZXhwIjoxNzUwNjYyODk5fQ.EeScJ10jYaof4XK734FP1FgrY5KLSqYvCQ73b2QTSsM",
+        "role": "assistant",
+        "content": "Cả! 👋 \n\nAnything I can do for you? 😁  \n",
+        "timestamp": 1750322761676,
+        "id": "43a4768d-992d-41f7-b1f0-e47f07288f53"
+      }
+    ]
+  },
+  "settings": {
+    "maxHistoryLength": 100,
+    "defaultModel": "gemma2-9b-it",
+    "temperature": 0.7
+  }
+}

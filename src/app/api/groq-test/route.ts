@@ -1,55 +1,184 @@
 import { Groq } from "groq-sdk";
 import { NextRequest } from "next/server";
+import { Low } from "lowdb";
+import { JSONFile } from "lowdb/node";
+import { join, dirname } from "path";
+import { fileURLToPath } from "url";
+import { mkdirSync, existsSync } from "fs";
 
-// Bộ nhớ tạm để lưu hội thoại
-const conversationMemory = new Map<
-  string,
-  Array<{ role: "system" | "user" | "assistant"; content: string }>
->();
+// Initialize database path
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const file = join(__dirname, "..", "data", "db.json");
+
+// Ensure data directory exists
+if (!existsSync(dirname(file))) {
+  mkdirSync(dirname(file), { recursive: true });
+}
+
+// Data types
+interface Message {
+  userToken: string;
+  role: "system" | "user" | "assistant";
+  content: string;
+  timestamp: number;
+  id: string; // Unique identifier for each message
+}
+
+interface Schema {
+  chats: {
+    history: Message[];
+  };
+  settings: {
+    maxHistoryLength: number;
+    defaultModel: string;
+    temperature: number;
+  };
+}
+
+// Default database structure
+const defaultDB: Schema = {
+  chats: {
+    history: [],
+  },
+  settings: {
+    maxHistoryLength: 100,
+    defaultModel: "gemma2-9b-it",
+    temperature: 0.7,
+  },
+};
+
+// Initialize adapter and database
+const adapter = new JSONFile<Schema>(file);
+const db = new Low<Schema>(adapter, defaultDB);
+
+// Helper function to cleanup old messages
+function cleanupOldMessages(messages: Message[], maxLength: number): Message[] {
+  if (messages.length <= maxLength) return messages;
+  const sortedMessages = [...messages].sort(
+    (a, b) => b.timestamp - a.timestamp
+  );
+  return sortedMessages.slice(0, maxLength);
+}
 
 export async function POST(req: NextRequest) {
   const body = await req.json();
-  const message = body.message;
-  const userToken = body.userToken;
+  const { message, userToken } = body;
 
-  if (!message || !userToken) {
+  if (!userToken) {
     return Response.json(
-      { error: "Missing 'message' or 'userToken'" },
+      { error: "Không tìm thấy TOKEN, bro ơi đừng..." },
+      { status: 400 }
+    );
+  }
+  if (!message?.trim()) {
+    return Response.json(
+      { error: "Missing or invalid 'message'" },
       { status: 400 }
     );
   }
 
-  const previousMessages = conversationMemory.get(userToken) || [
-    {
-      role: "system",
-      content:
-        "You are a helpful assistant that replies in a storytelling manner.",
-    },
-  ];
+  // Ensure data is loaded
+  await db.read();
 
-  // Thêm message mới của user vào hội thoại
-  previousMessages.push({ role: "user", content: message });
-
-  const groq = new Groq({ apiKey: process.env.GROQ_API_KEY as string });
+  // Initialize db structure if empty
+  if (!db.data) {
+    db.data = defaultDB;
+  }
 
   try {
-    const response = await groq.chat.completions.create({
-      model: "llama-3.3-70b-versatile",
-      messages: previousMessages,
+    // System message defines AI behavior
+    const systemMessage = {
+      role: "system" as const,
+      content:
+        "Your creator is Pillrock, a programmer born in 2006 named PTĐ. You are helpful, concise, and friendly.",
+    };
+
+    // Get conversation history for the user
+    const userHistory = db.data.chats.history
+      .filter((msg) => msg.userToken === userToken)
+      .sort((a, b) => a.timestamp - b.timestamp)
+      .slice(-10); // Only use last 10 messages for context
+
+    const conversationMessages = [
+      systemMessage,
+      ...userHistory.map(({ role, content }) => ({ role, content })),
+      { role: "user" as const, content: message },
+    ];
+
+    // Call Groq API
+    const groq = new Groq({ apiKey: process.env.GROQ_API_KEY as string });
+    const completion = await groq.chat.completions.create({
+      model: db.data.settings.defaultModel,
+      messages: conversationMessages,
+      temperature: db.data.settings.temperature,
     });
 
     const reply =
-      response.choices[0]?.message?.content || "No response from AI.";
+      completion.choices[0]?.message?.content || "No response from AI.";
 
-    // Lưu phản hồi từ AI vào lịch sử
-    previousMessages.push({ role: "assistant", content: reply });
-    conversationMemory.set(userToken, previousMessages);
+    // Create new messages
+    const newMessages: Message[] = [
+      {
+        userToken,
+        role: "user",
+        content: message,
+        timestamp: Date.now(),
+        id: crypto.randomUUID(),
+      },
+      {
+        userToken,
+        role: "assistant",
+        content: reply,
+        timestamp: Date.now(),
+        id: crypto.randomUUID(),
+      },
+    ];
 
-    return Response.json({ message: reply });
+    // Add new messages and cleanup if needed
+    db.data.chats.history = cleanupOldMessages(
+      [...db.data.chats.history, ...newMessages],
+      db.data.settings.maxHistoryLength
+    );
+
+    // Save to database
+    await db.write();
+
+    return Response.json({
+      status: 200,
+      message: reply,
+      messageId: newMessages[1].id, // Return assistant's message ID
+      timestamp: newMessages[1].timestamp,
+    });
   } catch (error: unknown) {
-    if (error instanceof Error) {
-      return Response.json({ error: error.message }, { status: 500 });
+    console.error("Error in /api/groq-test:", error);
+
+    // Check if error is due to context length
+    if (
+      error instanceof Error &&
+      error.message.includes("context_length_exceeded")
+    ) {
+      // Reduce history and try again with shorter context
+      db.data.chats.history = cleanupOldMessages(
+        db.data.chats.history,
+        Math.floor(db.data.settings.maxHistoryLength / 2)
+      );
+      await db.write();
+
+      return Response.json(
+        {
+          error: "Đoạn chat dài quá rồi bro.",
+          shouldRetry: true,
+        },
+        { status: 400 }
+      );
     }
-    return Response.json({ error: "Unknown error" }, { status: 500 });
+
+    return Response.json(
+      {
+        error: error instanceof Error ? error.message : "Unknown error",
+        shouldRetry: false,
+      },
+      { status: 500 }
+    );
   }
 }
