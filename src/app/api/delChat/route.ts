@@ -1,4 +1,3 @@
-import { Groq } from "groq-sdk";
 import { NextRequest } from "next/server";
 import { Low } from "lowdb";
 import { JSONFile } from "lowdb/node";

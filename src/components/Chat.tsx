@@ -58,10 +58,9 @@ const Chat: React.FC = () => {
         },
       ]);
       setIsLoading(false);
-    } catch (error: any) {
+    } catch (error: unknown) {
       setIsLoading(false);
       console.log("Error:", error);
-
       setMessages((prev) => [
         ...prev,
         {
